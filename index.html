@@ -7,10 +7,10 @@
     2. Interactive Modules:
        - Flow & Modes: Interactive packet simulator.
        - Tech Evolution: Radar chart.
-       - The Network Map (UPDATED): Hierarchical topology schema reflecting user's handwritten diagram (CT -> CTU -> CL -> URA).
+       - The Network Map: Hierarchical topology schema.
        - Hardware Lab: Split-screen visualizer.
-       - Enterprise & Protocols: Deep dive.
-       - Glossary (NEW): Complete dictionary of all 9 categories from the course sheet.
+       - Enterprise & Protocols (UPDATED): Includes new visual diagram for SDA Mechanism based on user hand-drawing.
+       - Glossary: Complete dictionary.
     3. Quick Review (Anti-sèche): Always-accessible modal.
 -->
 
@@ -78,11 +78,6 @@
         .packet.left { background-color: #f97316; animation: moveLeft 2s linear forwards; }
 
         /* Network Schema Lines */
-        .schema-connector {
-            position: absolute;
-            background-color: #9ca3af;
-            z-index: 0;
-        }
         .node-box {
             position: relative;
             z-index: 10;
@@ -238,7 +233,6 @@
             infra: {
                 title: "Infrastructure & Commutation",
                 intro: "Le schéma ci-dessous illustre l'organisation hiérarchique du réseau téléphonique, du cœur de réseau national jusqu'à la boucle locale chez l'abonné.",
-                // Updated to be simpler, structure handled in render function now
             },
             hardware: {
                 title: "Équipements & Accès",
@@ -598,7 +592,7 @@
                 const wrapper = document.createElement('div');
                 wrapper.className = "bg-white rounded-2xl p-6 md:p-10 shadow-sm border border-stone-100 overflow-x-auto";
                 
-                // New Hierarchical Visual Schema
+                // Hierarchical Visual Schema
                 wrapper.innerHTML = `
                     <div class="min-w-[700px] flex flex-col items-center gap-10">
                         
@@ -801,6 +795,80 @@
                     `;
                 });
 
+                // SDA Diagram Block
+                const sdaBlock = document.createElement('div');
+                sdaBlock.className = "mt-8 bg-white p-6 rounded-2xl shadow-sm border border-stone-200 overflow-x-auto";
+                sdaBlock.innerHTML = `
+                  <h3 class="font-bold text-xl mb-6 text-stone-800">Schéma du Mécanisme SDA</h3>
+                  <div class="min-w-[600px] flex justify-between items-start relative py-10 px-4">
+                    
+                    <!-- Zone Entreprise (Left) -->
+                    <div class="border-2 border-stone-300 rounded-xl p-4 w-5/12 relative bg-stone-50">
+                      <div class="absolute -top-3 left-4 bg-stone-50 px-2 font-bold text-stone-600">Entreprise</div>
+                      
+                      <!-- PABX -->
+                      <div class="bg-red-100 border-2 border-red-500 w-20 h-16 mx-auto flex flex-col items-center justify-center rounded mb-8 relative z-10 shadow-sm">
+                        <span class="font-bold text-red-800 text-sm">PABX</span>
+                        <div class="text-[10px] text-red-600">Autocom</div>
+                      </div>
+
+                      <!-- Arrows Internal -->
+                      <div class="absolute top-20 left-1/2 w-0.5 h-8 bg-stone-400 -translate-x-1/2"></div>
+                      <div class="absolute top-28 left-10 right-10 h-0.5 bg-stone-400"></div>
+                      <div class="absolute top-28 left-10 w-0.5 h-4 bg-stone-400"></div>
+                      <div class="absolute top-28 right-10 w-0.5 h-4 bg-stone-400"></div>
+
+                      <!-- Phones -->
+                      <div class="flex justify-around mt-8">
+                        <div class="text-center opacity-50">
+                          <span class="text-2xl">☎️</span>
+                          <div class="text-[10px]">Poste A</div>
+                        </div>
+                        <div class="text-center relative">
+                          <div class="absolute -top-6 left-1/2 -translate-x-1/2 text-[10px] font-bold text-red-600 w-32 bg-white/80">4. Sélection du Destinataire à l'Arrivé</div>
+                          <span class="text-2xl animate-bounce inline-block">🔔</span> <!-- Ringing -->
+                          <div class="text-[10px] font-bold">04.73...36</div>
+                          <div class="text-[10px] font-bold text-green-600 mt-1">5. Etablissement de l'appel 6. Sonne</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Connection Lines (Middle) -->
+                    <div class="flex-1 relative h-32 mx-2">
+                       <!-- Arrow RTC -> Entreprise -->
+                       <div class="absolute top-1/3 left-0 right-0 border-t-2 border-blue-400"></div>
+                       <div class="absolute top-1/3 right-0 -mt-1.5 w-0 h-0 border-t-4 border-t-transparent border-l-[8px] border-l-blue-400 border-b-4 border-b-transparent"></div>
+                       
+                       <div class="absolute top-8 left-1/2 -translate-x-1/2 text-center bg-white px-2">
+                           <div class="text-xs text-blue-600 font-bold">3. Demande Etablissement</div>
+                           <div class="text-[10px] text-stone-400">Signalisation</div>
+                       </div>
+                    </div>
+
+                    <!-- Zone RTC (Right) -->
+                    <div class="border-2 border-stone-300 rounded-xl p-4 w-4/12 relative bg-stone-50">
+                       <div class="absolute -top-3 right-4 bg-stone-50 px-2 font-bold text-stone-600">Réseau RTC</div>
+                       
+                       <!-- RTC Switch -->
+                       <div class="bg-stone-200 border-2 border-stone-500 w-16 h-16 mx-auto flex items-center justify-center rounded mb-8 shadow-sm">
+                         <span class="font-bold text-stone-700">Switch</span>
+                       </div>
+                       
+                       <!-- Connection External -->
+                       <div class="absolute top-20 right-[-20px] w-8 h-0.5 bg-stone-400 rotate-[-45deg]"></div>
+                       <div class="absolute top-16 right-[-40px] text-xs font-bold text-stone-600">2. Demande</div>
+
+                       <!-- External Caller -->
+                       <div class="text-center mt-2 relative -right-4">
+                         <span class="text-3xl">📱</span>
+                         <div class="text-xs mt-1 font-bold">Appelant</div>
+                         <div class="text-xs font-mono text-stone-500 bg-yellow-50 p-1 rounded inline-block">1. Compose 04.73...36</div>
+                       </div>
+                    </div>
+
+                  </div>
+                `;
+
                 // Context Box about Protocols
                 const info = document.createElement('div');
                 info.className = "mt-8 bg-indigo-900 text-white p-6 rounded-xl shadow-lg";
@@ -819,6 +887,7 @@
                 `;
 
                 container.appendChild(list);
+                container.appendChild(sdaBlock);
                 container.appendChild(info);
             },
 
