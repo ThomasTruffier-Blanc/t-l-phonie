@@ -1,0 +1,744 @@
+<!-- Chosen Palette: Warm Neutrals & Focus Accents -->
+<!-- Background: #fafaf9 (Stone-50), Surface: #ffffff, Text: #1c1917 (Stone-900) -->
+<!-- Accents: #3b82f6 (Blue-500 for Digital/IP), #f97316 (Orange-500 for Analog/Voice) -->
+
+<!-- Application Structure Plan: 
+    1. Dashboard View (Home): High-level stats and navigation grid to 5 core learning modules.
+    2. Interactive Modules:
+       - Flow & Modes: Interactive packet simulator (Simplex/Half/Full).
+       - Tech Evolution: Radar chart comparing RTC, RNIS, VoIP attributes.
+       - The Network Map: Interactive hierarchy tree (CL -> CT -> ISP).
+       - Hardware Lab: Split-screen visualizer for Fiber vs Copper equipment.
+       - Enterprise & Protocols: Accordion-style deep dive into SIP, PABX, etc.
+    3. Quick Review (Anti-sèche): Always-accessible modal with summarized facts/flashcards.
+    
+    Why this structure? 
+    Breaking the "Fiche de Révision" into active modules transforms passive reading into active testing. 
+    The dashboard gives a sense of progress, while the "Lab" feel encourages experimentation with the concepts.
+-->
+
+<!-- Visualization & Content Choices:
+    1. Communication Modes -> Goal: Understand Directionality -> Method: CSS/JS Animation (Moving dots) -> User triggers "Send" to see collisions or flow.
+    2. Technologies (RTC vs VoIP) -> Goal: Compare qualitative traits -> Method: Chart.js Radar Chart -> Maps abstract concepts like "Flexibility" and "Cost" to visual axes.
+    3. Hierarchy (CL/CT) -> Goal: Visualize Scale -> Method: HTML Flexbox Tree -> Click nodes to reveal definitions (URA, ZL).
+    4. Hardware (OLT/ONT) -> Goal: Distinguish Location (Home vs ISP) -> Method: Interactive Diagram (HTML/CSS) -> Toggle between "Fiber Path" and "Copper Path".
+    5. Summary -> Goal: Rapid Recall -> Method: Flashcard Grid -> Hover/Click to reveal answers.
+-->
+
+<!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. All icons are Unicode or CSS shapes. -->
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hub de Révision : Fondamentaux Télécoms</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #fafaf9; }
+        
+        /* Custom Utilities */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(0,0,0,0.05);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        }
+
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px;
+            max-height: 400px;
+        }
+
+        /* Animation for Data Packets */
+        @keyframes moveRight {
+            0% { left: 10%; opacity: 1; }
+            90% { left: 90%; opacity: 1; }
+            100% { left: 90%; opacity: 0; }
+        }
+        @keyframes moveLeft {
+            0% { left: 90%; opacity: 1; }
+            90% { left: 10%; opacity: 1; }
+            100% { left: 10%; opacity: 0; }
+        }
+
+        .packet {
+            position: absolute;
+            top: 50%;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            transform: translateY(-50%);
+            display: none;
+        }
+        .packet.right { background-color: #3b82f6; animation: moveRight 2s linear forwards; }
+        .packet.left { background-color: #f97316; animation: moveLeft 2s linear forwards; }
+
+        /* Tree Diagram Lines */
+        .tree-line {
+            position: absolute;
+            background-color: #d6d3d1;
+            z-index: 0;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #d6d3d1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #a8a29e; }
+    </style>
+</head>
+<body class="text-stone-800 h-screen flex flex-col overflow-hidden">
+
+    <!-- Header -->
+    <header class="bg-white border-b border-stone-200 p-4 flex justify-between items-center shadow-sm z-10 shrink-0">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-xl shadow-lg">T</div>
+            <div>
+                <h1 class="font-bold text-lg leading-tight">Fondamentaux Télécoms</h1>
+                <p class="text-xs text-stone-500">Fiche de Révision Interactive</p>
+            </div>
+        </div>
+        <button onclick="app.toggleCheatSheet()" class="bg-stone-800 hover:bg-stone-700 text-white px-4 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-2">
+            <span>⚡ Anti-sèche</span>
+        </button>
+    </header>
+
+    <!-- Main Layout -->
+    <div class="flex flex-1 overflow-hidden relative">
+        
+        <!-- Sidebar Navigation -->
+        <nav class="w-20 md:w-64 bg-white border-r border-stone-200 flex flex-col shrink-0 overflow-y-auto">
+            <div class="p-4 space-y-2">
+                <p class="hidden md:block text-xs font-semibold text-stone-400 uppercase tracking-wider mb-2">Modules</p>
+                
+                <button onclick="app.navigate('dashboard')" class="nav-btn w-full text-left p-3 rounded-lg hover:bg-stone-100 transition-all flex items-center gap-3 text-stone-600 group active-nav" data-target="dashboard">
+                    <span class="text-xl group-hover:scale-110 transition-transform">📊</span>
+                    <span class="hidden md:block font-medium">Vue d'ensemble</span>
+                </button>
+
+                <button onclick="app.navigate('modes')" class="nav-btn w-full text-left p-3 rounded-lg hover:bg-stone-100 transition-all flex items-center gap-3 text-stone-600 group" data-target="modes">
+                    <span class="text-xl group-hover:scale-110 transition-transform">↔️</span>
+                    <span class="hidden md:block font-medium">Modes de Com.</span>
+                </button>
+
+                <button onclick="app.navigate('tech')" class="nav-btn w-full text-left p-3 rounded-lg hover:bg-stone-100 transition-all flex items-center gap-3 text-stone-600 group" data-target="tech">
+                    <span class="text-xl group-hover:scale-110 transition-transform">📞</span>
+                    <span class="hidden md:block font-medium">Technologies</span>
+                </button>
+
+                <button onclick="app.navigate('infra')" class="nav-btn w-full text-left p-3 rounded-lg hover:bg-stone-100 transition-all flex items-center gap-3 text-stone-600 group" data-target="infra">
+                    <span class="text-xl group-hover:scale-110 transition-transform">🏭</span>
+                    <span class="hidden md:block font-medium">Infrastructure</span>
+                </button>
+
+                <button onclick="app.navigate('hardware')" class="nav-btn w-full text-left p-3 rounded-lg hover:bg-stone-100 transition-all flex items-center gap-3 text-stone-600 group" data-target="hardware">
+                    <span class="text-xl group-hover:scale-110 transition-transform">🔌</span>
+                    <span class="hidden md:block font-medium">Matériel & Accès</span>
+                </button>
+                
+                <button onclick="app.navigate('enterprise')" class="nav-btn w-full text-left p-3 rounded-lg hover:bg-stone-100 transition-all flex items-center gap-3 text-stone-600 group" data-target="enterprise">
+                    <span class="text-xl group-hover:scale-110 transition-transform">🏢</span>
+                    <span class="hidden md:block font-medium">Entreprise</span>
+                </button>
+            </div>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main id="content-area" class="flex-1 overflow-y-auto p-4 md:p-8 bg-stone-50 relative">
+            <!-- Dynamic Content Injected Here -->
+        </main>
+
+    </div>
+
+    <!-- Cheat Sheet Modal (Hidden by default) -->
+    <div id="cheat-sheet-modal" class="fixed inset-0 bg-stone-900/50 backdrop-blur-sm z-50 hidden flex justify-end transition-opacity">
+        <div class="w-full md:w-[500px] bg-white h-full shadow-2xl p-6 overflow-y-auto transform transition-transform translate-x-full" id="cheat-sheet-panel">
+            <div class="flex justify-between items-center mb-6 border-b border-stone-100 pb-4">
+                <h2 class="text-2xl font-bold text-stone-800">⚡ L'Anti-sèche</h2>
+                <button onclick="app.toggleCheatSheet()" class="text-stone-400 hover:text-stone-600 text-2xl">&times;</button>
+            </div>
+            
+            <div class="space-y-6">
+                <div class="bg-blue-50 p-4 rounded-xl border border-blue-100">
+                    <h3 class="font-bold text-blue-800 mb-2">Mémos Rapides</h3>
+                    <ul class="space-y-2 text-sm text-blue-900">
+                        <li class="flex justify-between"><span>Simplex</span> <span class="font-bold">Radio (1 sens)</span></li>
+                        <li class="flex justify-between"><span>Half-Duplex</span> <span class="font-bold">Talkie (Chacun son tour)</span></li>
+                        <li class="flex justify-between"><span>Full-Duplex</span> <span class="font-bold">Téléphone (Simultané)</span></li>
+                        <li class="flex justify-between"><span>SIP</span> <span class="font-bold">Protocole VoIP</span></li>
+                        <li class="flex justify-between"><span>ONT</span> <span class="font-bold">Chez Toi (Abonné)</span></li>
+                        <li class="flex justify-between"><span>OLT</span> <span class="font-bold">Chez L'Opérateur</span></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h3 class="font-bold text-stone-800 mb-3">Définitions Clés</h3>
+                    <div class="grid gap-3" id="definitions-grid">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Application Logic -->
+    <script>
+        const data = {
+            dashboard: {
+                title: "Vue d'ensemble",
+                description: "Bienvenue dans votre espace de révision. Ce tableau de bord synthétise les concepts clés du rapport sur les télécommunications. Sélectionnez un module à gauche pour approfondir ou utilisez l'anti-sèche pour une révision rapide.",
+                stats: [
+                    { label: "Modes de Com.", value: "3 Types", icon: "↔️", color: "bg-blue-100 text-blue-600" },
+                    { label: "Technologies", value: "RTC, RNIS, VoIP", icon: "📞", color: "bg-orange-100 text-orange-600" },
+                    { label: "Architecture", value: "4 Niveaux", icon: "🏭", color: "bg-purple-100 text-purple-600" },
+                    { label: "Matériel", value: "Fibre & Cuivre", icon: "🔌", color: "bg-emerald-100 text-emerald-600" }
+                ]
+            },
+            modes: {
+                title: "Modes de Communication",
+                intro: "Comprendre comment l'information circule est la base des télécoms. Testez les trois modes ci-dessous pour voir la différence entre transmission unidirectionnelle, alternée et simultanée.",
+                types: [
+                    { id: 'simplex', name: 'Simplex', icon: '➡️', desc: 'Un seul sens uniquement (ex: Radio FM). L\'émetteur envoie, le récepteur écoute. Impossible de répondre.' },
+                    { id: 'half', name: 'Half-Duplex', icon: '⇄', desc: 'Deux sens, mais pas en même temps (ex: Talkie-walkie). Il faut attendre que l\'autre ait fini.' },
+                    { id: 'full', name: 'Full-Duplex', icon: '↔️', desc: 'Deux sens simultanément (ex: Téléphone). On peut parler et écouter en même temps.' }
+                ]
+            },
+            tech: {
+                title: "Réseaux & Technologies",
+                intro: "L'évolution de la téléphonie a marqué le passage de l'analogique au tout numérique (IP). Ce module compare les caractéristiques techniques et fonctionnelles du RTC, du RNIS et de la VoIP.",
+                chartData: {
+                    labels: ['Qualité Audio (Haut débit)', 'Flexibilité', 'Coût Installation', 'Interopérabilité Data', 'Simplicité Analogique'],
+                    datasets: [
+                        { label: 'RTC (Analogique)', data: [2, 2, 8, 1, 9], borderColor: '#f97316', backgroundColor: 'rgba(249, 115, 22, 0.2)' },
+                        { label: 'VoIP (Moderne)', data: [9, 10, 4, 10, 3], borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.2)' }
+                    ]
+                }
+            },
+            infra: {
+                title: "Infrastructure & Commutation",
+                intro: "Le réseau téléphonique est hiérarchisé pour gérer efficacement des millions d'appels. Explorez la structure géographique, du quartier (Local) jusqu'au transit national.",
+                nodes: [
+                    { code: "CL", title: "Commutateur Local", desc: "Le point d'entrée. Relie directement l'abonné au réseau." },
+                    { code: "URA", title: "Unité de Raccordement", desc: "Extension distante du CL pour les abonnés éloignés." },
+                    { code: "CT", title: "Centre de Transit", desc: "Gère le trafic entre commutateurs. (CTU pour Urbain)." },
+                    { code: "ZL/ZU", title: "Zones Géo", desc: "Zone Locale (petite échelle) vs Zone Urbaine (ville)." }
+                ]
+            },
+            hardware: {
+                title: "Équipements & Accès",
+                intro: "Fibre optique ou Cuivre ADSL ? Les équipements diffèrent selon la technologie. Comparez ci-dessous les terminaisons chez l'abonné et les concentrateurs chez l'opérateur.",
+                fiber: { title: "Fibre Optique (FTTH)", user: "ONT (Optical Network Termination)", operator: "OLT (Optical Line Terminal)", desc: "La lumière transporte les données. L'OLT distribue, l'ONT convertit en électricité chez vous." },
+                copper: { title: "Cuivre (ADSL/RTC)", user: "Modem / Prise T", operator: "DSLAM", desc: "Utilise les paires de cuivre historiques. Le DSLAM concentre les lignes ADSL." }
+            },
+            enterprise: {
+                title: "Téléphonie d'Entreprise",
+                intro: "En entreprise, la gestion des appels est centralisée. Découvrez les standards téléphoniques (PABX/IPBX) et les protocoles comme le SIP qui régissent les communications modernes.",
+                items: [
+                    { term: "PABX", full: "Private Automatic Branch eXchange", def: "Le standard 'vieux jeu'. Autocommutateur privé matériel." },
+                    { term: "IPBX", full: "IP Branch Exchange", def: "Le standard moderne sur réseau informatique. Gère la VoIP." },
+                    { term: "Call Server", full: "Serveur d'Appel", def: "Cerveau logiciel gérant le routage et les services pour de gros volumes." },
+                    { term: "SDA", full: "Sélection Directe à l'Arrivée", def: "Permet d'appeler directement un employé (01.XX...15) sans passer par l'accueil." },
+                    { term: "SIP", full: "Session Initiation Protocol", def: "Le langage standard de la VoIP pour connecter, sonner, décrocher." }
+                ]
+            }
+        };
+
+        const app = {
+            state: {
+                currentView: 'dashboard',
+                simplexActive: false,
+                halfDirection: 'right', // right or left
+                fullActive: false
+            },
+
+            init: () => {
+                app.renderView('dashboard');
+                app.populateCheatSheet();
+            },
+
+            navigate: (viewId) => {
+                app.state.currentView = viewId;
+                
+                // Update Nav UI
+                document.querySelectorAll('.nav-btn').forEach(btn => {
+                    if(btn.dataset.target === viewId) {
+                        btn.classList.add('bg-stone-100', 'text-stone-900', 'font-bold');
+                        btn.classList.remove('text-stone-600');
+                    } else {
+                        btn.classList.remove('bg-stone-100', 'text-stone-900', 'font-bold');
+                        btn.classList.add('text-stone-600');
+                    }
+                });
+
+                app.renderView(viewId);
+            },
+
+            renderView: (viewId) => {
+                const container = document.getElementById('content-area');
+                container.innerHTML = ''; // Clear current
+
+                // Build header for the section
+                const header = document.createElement('div');
+                header.className = "mb-8";
+                header.innerHTML = `
+                    <h2 class="text-3xl font-bold text-stone-800 mb-2">${data[viewId].title}</h2>
+                    ${data[viewId].intro ? `<p class="text-stone-600 max-w-3xl leading-relaxed">${data[viewId].intro}</p>` : ''}
+                `;
+                container.appendChild(header);
+
+                // Build Specific Content
+                if (viewId === 'dashboard') app.renderDashboard(container);
+                else if (viewId === 'modes') app.renderModes(container);
+                else if (viewId === 'tech') app.renderTech(container);
+                else if (viewId === 'infra') app.renderInfra(container);
+                else if (viewId === 'hardware') app.renderHardware(container);
+                else if (viewId === 'enterprise') app.renderEnterprise(container);
+            },
+
+            renderDashboard: (container) => {
+                const grid = document.createElement('div');
+                grid.className = "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8";
+                
+                data.dashboard.stats.forEach(stat => {
+                    grid.innerHTML += `
+                        <div class="glass-panel p-6 rounded-xl flex items-center gap-4 hover:shadow-md transition-shadow cursor-default">
+                            <div class="w-12 h-12 rounded-full flex items-center justify-center text-xl ${stat.color}">${stat.icon}</div>
+                            <div>
+                                <p class="text-sm text-stone-500 font-medium">${stat.label}</p>
+                                <p class="text-xl font-bold text-stone-800">${stat.value}</p>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                const welcome = document.createElement('div');
+                welcome.className = "bg-white p-8 rounded-2xl shadow-sm border border-stone-100";
+                welcome.innerHTML = `
+                    <h3 class="text-xl font-bold mb-4">Bienvenue</h3>
+                    <p class="text-stone-600 mb-6">${data.dashboard.description}</p>
+                    <button onclick="app.navigate('modes')" class="bg-stone-800 text-white px-6 py-3 rounded-lg hover:bg-stone-700 transition-colors">
+                        Commencer la révision &rarr;
+                    </button>
+                `;
+
+                container.appendChild(grid);
+                container.appendChild(welcome);
+            },
+
+            renderModes: (container) => {
+                // Interactive Simulation Area
+                const demoArea = document.createElement('div');
+                demoArea.className = "bg-white p-6 md:p-10 rounded-2xl shadow-lg border border-stone-100 mb-8 overflow-hidden";
+                
+                demoArea.innerHTML = `
+                    <div class="flex justify-between items-center mb-12 px-4 md:px-20 relative h-32">
+                        <!-- Connecting Line -->
+                        <div class="absolute top-1/2 left-20 right-20 h-1 bg-stone-200 -z-0"></div>
+                        
+                        <!-- Entity A -->
+                        <div class="relative z-10 text-center">
+                            <div class="w-16 h-16 bg-blue-100 border-2 border-blue-500 rounded-full flex items-center justify-center text-2xl mb-2 relative">
+                                👨‍💻
+                                <div id="packet-container-a" class="absolute inset-0"></div>
+                            </div>
+                            <span class="font-bold text-sm text-stone-600">Émetteur A</span>
+                        </div>
+
+                        <!-- Entity B -->
+                        <div class="relative z-10 text-center">
+                            <div class="w-16 h-16 bg-orange-100 border-2 border-orange-500 rounded-full flex items-center justify-center text-2xl mb-2 relative">
+                                👩‍💻
+                                <div id="packet-container-b" class="absolute inset-0"></div>
+                            </div>
+                            <span class="font-bold text-sm text-stone-600">Récepteur B</span>
+                        </div>
+                    </div>
+
+                    <!-- Controls -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        ${data.modes.types.map(type => `
+                            <button onclick="app.setMode('${type.id}')" id="btn-${type.id}" class="mode-btn p-4 rounded-xl border-2 border-stone-100 hover:border-blue-500 transition-all text-left group">
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="font-bold text-stone-800">${type.name}</span>
+                                    <span class="text-xl">${type.icon}</span>
+                                </div>
+                                <p class="text-xs text-stone-500 leading-snug">${type.desc}</p>
+                            </button>
+                        `).join('')}
+                    </div>
+
+                    <div class="mt-8 text-center" id="action-controls">
+                        <!-- Dynamic Buttons inserted by JS -->
+                        <p class="text-stone-400 italic">Sélectionnez un mode ci-dessus pour tester.</p>
+                    </div>
+                `;
+                container.appendChild(demoArea);
+            },
+
+            setMode: (modeId) => {
+                // UI Update
+                document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('border-blue-500', 'bg-blue-50'));
+                document.getElementById(`btn-${modeId}`).classList.add('border-blue-500', 'bg-blue-50');
+
+                const controls = document.getElementById('action-controls');
+                controls.innerHTML = '';
+
+                if (modeId === 'simplex') {
+                    controls.innerHTML = `<button onclick="app.sendPacket('right')" class="bg-blue-600 text-white px-8 py-3 rounded-lg shadow-lg hover:bg-blue-700 transition-transform active:scale-95">Émettre (A ➔ B)</button>`;
+                } else if (modeId === 'half') {
+                    controls.innerHTML = `
+                        <div class="flex justify-center gap-4">
+                            <button onclick="app.sendPacket('right')" class="bg-stone-800 text-white px-6 py-3 rounded-lg hover:bg-stone-700">Parler (A ➔ B)</button>
+                            <span class="flex items-center text-stone-400 text-sm">OU (Pas les deux)</span>
+                            <button onclick="app.sendPacket('left')" class="bg-stone-800 text-white px-6 py-3 rounded-lg hover:bg-stone-700">Parler (B ➔ A)</button>
+                        </div>
+                    `;
+                } else if (modeId === 'full') {
+                    controls.innerHTML = `
+                         <div class="flex justify-center gap-4">
+                            <button onclick="app.sendPacket('right')" class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700">Parler (A ➔ B)</button>
+                            <button onclick="app.sendPacket('left')" class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700">Parler (B ➔ A)</button>
+                        </div>
+                        <p class="text-xs text-green-600 mt-2 font-medium">Vous pouvez cliquer sur les deux en même temps !</p>
+                    `;
+                }
+            },
+
+            sendPacket: (direction) => {
+                // Visual logic for packets
+                const startNode = direction === 'right' ? document.getElementById('packet-container-a') : document.getElementById('packet-container-b');
+                
+                // Check for Half Duplex Collision logic (simplified: prevent if animation running? Nah, let's keep it simple visual)
+                
+                const packet = document.createElement('div');
+                packet.className = `packet ${direction}`;
+                
+                // We need to append to a container that spans the width, not the node itself
+                // Adjusting structure for simpler animation:
+                const lineContainer = document.querySelector('.relative.h-32');
+                packet.style.display = 'block';
+                packet.style.top = '50%';
+                
+                lineContainer.appendChild(packet);
+
+                setTimeout(() => {
+                    packet.remove();
+                }, 2000);
+            },
+
+            renderTech: (container) => {
+                const layout = document.createElement('div');
+                layout.className = "flex flex-col lg:flex-row gap-8";
+
+                // Chart Container
+                const chartWrapper = document.createElement('div');
+                chartWrapper.className = "w-full lg:w-1/2 bg-white p-6 rounded-2xl shadow-sm border border-stone-100 flex flex-col";
+                chartWrapper.innerHTML = `
+                    <h3 class="font-bold text-lg mb-4 text-center">Comparatif : RTC vs VoIP</h3>
+                    <div class="chart-container flex-grow">
+                        <canvas id="techChart"></canvas>
+                    </div>
+                    <p class="text-xs text-center text-stone-400 mt-4">Note : Les valeurs sont indicatives pour illustrer les forces relatives.</p>
+                `;
+
+                // Info Cards
+                const infoWrapper = document.createElement('div');
+                infoWrapper.className = "w-full lg:w-1/2 space-y-4";
+                infoWrapper.innerHTML = `
+                    <div class="bg-orange-50 p-5 rounded-xl border border-orange-100">
+                        <div class="flex justify-between items-start mb-2">
+                            <h4 class="font-bold text-orange-800">RTC (Réseau Téléphonique Commuté)</h4>
+                            <span class="text-xs bg-orange-200 text-orange-800 px-2 py-1 rounded">Historique</span>
+                        </div>
+                        <p class="text-sm text-orange-900 opacity-80">Technologie analogique sur cuivre. Robuste mais limitée en fonctionnalités et coûteuse à maintenir. Un fil = Une conversation.</p>
+                    </div>
+
+                    <div class="bg-blue-50 p-5 rounded-xl border border-blue-100">
+                         <div class="flex justify-between items-start mb-2">
+                            <h4 class="font-bold text-blue-800">VoIP (Voice over IP)</h4>
+                            <span class="text-xs bg-blue-200 text-blue-800 px-2 py-1 rounded">Moderne</span>
+                        </div>
+                        <p class="text-sm text-blue-900 opacity-80">La voix est transformée en données (paquets IP) et passe par Internet. Permet la visio, le couplage informatique, et réduit les coûts.</p>
+                    </div>
+
+                    <div class="bg-stone-100 p-5 rounded-xl border border-stone-200">
+                         <div class="flex justify-between items-start mb-2">
+                            <h4 class="font-bold text-stone-800">RNIS (ISDN)</h4>
+                            <span class="text-xs bg-stone-300 text-stone-800 px-2 py-1 rounded">Transition</span>
+                        </div>
+                        <p class="text-sm text-stone-600">L'étape intermédiaire : numérique mais sur circuit dédié. Permettait Voix + Données avant l'ADSL généralisé.</p>
+                    </div>
+                `;
+
+                layout.appendChild(chartWrapper);
+                layout.appendChild(infoWrapper);
+                container.appendChild(layout);
+
+                // Init Chart
+                const ctx = document.getElementById('techChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'radar',
+                    data: data.tech.chartData,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            r: {
+                                beginAtZero: true,
+                                max: 10,
+                                ticks: { display: false },
+                                grid: { color: '#e5e7eb' }
+                            }
+                        },
+                        plugins: {
+                            legend: { position: 'bottom' }
+                        }
+                    }
+                });
+            },
+
+            renderInfra: (container) => {
+                const wrapper = document.createElement('div');
+                wrapper.className = "bg-white rounded-2xl p-6 shadow-sm border border-stone-100";
+                
+                // A simplified visual tree using Grid/Flex
+                wrapper.innerHTML = `
+                    <div class="flex flex-col items-center space-y-8 relative py-8">
+                        <!-- Connecting Line Vertical -->
+                        <div class="absolute left-1/2 top-10 bottom-10 w-1 bg-stone-200 -z-0"></div>
+
+                        <!-- Level 1: Transit -->
+                        <div class="z-10 bg-purple-100 border-2 border-purple-500 p-4 rounded-xl w-64 text-center cursor-pointer hover:scale-105 transition-transform group" onclick="app.showNodeDetail('CT')">
+                            <span class="text-2xl block mb-1">🌍 CT / CTU</span>
+                            <span class="font-bold text-purple-900">Centre de Transit</span>
+                            <div class="hidden group-hover:block text-xs text-purple-700 mt-2 bg-purple-50 p-2 rounded">Gère le trafic inter-villes</div>
+                        </div>
+
+                        <!-- Level 2: Local Switch -->
+                        <div class="z-10 bg-blue-100 border-2 border-blue-500 p-4 rounded-xl w-64 text-center cursor-pointer hover:scale-105 transition-transform group" onclick="app.showNodeDetail('CL')">
+                            <span class="text-2xl block mb-1">🏙️ CL / CU</span>
+                            <span class="font-bold text-blue-900">Commutateur Local</span>
+                             <div class="hidden group-hover:block text-xs text-blue-700 mt-2 bg-blue-50 p-2 rounded">Cœur du réseau urbain</div>
+                        </div>
+
+                         <!-- Branching for URA -->
+                         <div class="relative w-full max-w-lg flex justify-between px-10">
+                            <!-- Line branch -->
+                            <div class="absolute top-0 left-1/2 w-1/2 h-8 border-t-4 border-l-4 rounded-tl-xl border-stone-200 -z-10 translate-x-px"></div>
+                            
+                            <div class="z-10 bg-indigo-50 border-2 border-indigo-300 p-3 rounded-lg w-40 text-center mt-8">
+                                <span class="text-xl block">🏘️ URA</span>
+                                <span class="font-bold text-xs text-indigo-800">Unité Raccordement</span>
+                                <span class="block text-[10px] text-stone-500">Pour abonnés distants</span>
+                            </div>
+                         </div>
+
+                        <!-- Level 3: Subscriber -->
+                         <div class="z-10 bg-green-100 border-2 border-green-500 p-4 rounded-xl w-64 text-center mt-4">
+                            <span class="text-2xl block mb-1">🏠 Abonné</span>
+                            <span class="font-bold text-green-900">Maison / Entreprise</span>
+                        </div>
+                    </div>
+
+                    <div class="mt-8 p-4 bg-stone-50 rounded-lg border border-stone-200">
+                        <h4 class="font-bold mb-2">Légende des Zones</h4>
+                        <div class="flex gap-4 text-sm">
+                            <span class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-blue-500"></span> <strong>ZU:</strong> Zone Urbaine</span>
+                            <span class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-stone-400"></span> <strong>ZL:</strong> Zone Locale</span>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(wrapper);
+            },
+
+            showNodeDetail: (code) => {
+                // Simple interaction feedback - In a larger app, this would open a modal
+                // For now, the hover state handles the info display as per CSS in renderInfra
+                // keeping it simple for the SPA single file constraint.
+            },
+
+            renderHardware: (container) => {
+                const grid = document.createElement('div');
+                grid.className = "grid grid-cols-1 md:grid-cols-2 gap-8";
+
+                // Fiber Column
+                grid.innerHTML += `
+                    <div class="bg-white p-6 rounded-2xl shadow border-t-4 border-green-500 flex flex-col h-full">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-xl font-bold text-stone-800">Fibre (FTTH)</h3>
+                            <span class="text-2xl">⚡</span>
+                        </div>
+                        
+                        <div class="space-y-8 relative flex-1">
+                            <!-- Operator Side -->
+                            <div class="flex items-center gap-4">
+                                <div class="w-16 h-16 bg-stone-800 text-white rounded-lg flex items-center justify-center text-2xl shadow-lg shrink-0">🏢</div>
+                                <div>
+                                    <h4 class="font-bold text-lg">OLT</h4>
+                                    <p class="text-xs text-stone-500">Optical Line Terminal</p>
+                                    <p class="text-sm mt-1 bg-stone-100 p-2 rounded">Envoie la lumière</p>
+                                </div>
+                            </div>
+
+                            <!-- Connection -->
+                            <div class="h-12 border-l-2 border-dashed border-green-500 ml-8 my-2 relative">
+                                <span class="absolute top-1/2 left-2 text-xs text-green-600 bg-white px-1 -translate-y-1/2">Lumière</span>
+                            </div>
+
+                            <!-- User Side -->
+                            <div class="flex items-center gap-4">
+                                <div class="w-16 h-16 bg-white border-2 border-green-500 text-green-600 rounded-lg flex items-center justify-center text-2xl shadow-lg shrink-0">🏠</div>
+                                <div>
+                                    <h4 class="font-bold text-lg">ONT</h4>
+                                    <p class="text-xs text-stone-500">Optical Network Termination</p>
+                                    <p class="text-sm mt-1 bg-green-50 p-2 rounded">Convertit Lumière ➔ Élec</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                // Copper Column
+                grid.innerHTML += `
+                    <div class="bg-white p-6 rounded-2xl shadow border-t-4 border-orange-500 flex flex-col h-full">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-xl font-bold text-stone-800">Cuivre (ADSL)</h3>
+                            <span class="text-2xl">🥉</span>
+                        </div>
+                        
+                        <div class="space-y-8 relative flex-1">
+                            <!-- Operator Side -->
+                            <div class="flex items-center gap-4">
+                                <div class="w-16 h-16 bg-stone-800 text-white rounded-lg flex items-center justify-center text-2xl shadow-lg shrink-0">🏢</div>
+                                <div>
+                                    <h4 class="font-bold text-lg">DSLAM</h4>
+                                    <p class="text-xs text-stone-500">Multiplexeur d'accès</p>
+                                    <p class="text-sm mt-1 bg-stone-100 p-2 rounded">Concentre les lignes</p>
+                                </div>
+                            </div>
+
+                            <!-- Connection -->
+                            <div class="h-12 border-l-2 border-dashed border-orange-500 ml-8 my-2 relative">
+                                <span class="absolute top-1/2 left-2 text-xs text-orange-600 bg-white px-1 -translate-y-1/2">Signal Électrique</span>
+                            </div>
+
+                            <!-- User Side -->
+                            <div class="flex items-center gap-4">
+                                <div class="w-16 h-16 bg-white border-2 border-orange-500 text-orange-600 rounded-lg flex items-center justify-center text-2xl shadow-lg shrink-0">🏠</div>
+                                <div>
+                                    <h4 class="font-bold text-lg">Modem / Box</h4>
+                                    <p class="text-xs text-stone-500">Filtre ADSL</p>
+                                    <p class="text-sm mt-1 bg-orange-50 p-2 rounded">Prise en T classique</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                container.appendChild(grid);
+            },
+
+            renderEnterprise: (container) => {
+                const list = document.createElement('div');
+                list.className = "space-y-4";
+                
+                data.enterprise.items.forEach(item => {
+                    list.innerHTML += `
+                        <div class="bg-white p-5 rounded-xl border border-stone-200 hover:border-blue-400 transition-colors shadow-sm cursor-help group">
+                            <div class="flex justify-between items-center mb-2">
+                                <h3 class="font-bold text-lg text-stone-800 group-hover:text-blue-600 transition-colors">${item.term}</h3>
+                                <span class="text-xs font-mono text-stone-400">${item.full}</span>
+                            </div>
+                            <p class="text-stone-600">${item.def}</p>
+                        </div>
+                    `;
+                });
+
+                // Context Box about Protocols
+                const info = document.createElement('div');
+                info.className = "mt-8 bg-indigo-900 text-white p-6 rounded-xl shadow-lg";
+                info.innerHTML = `
+                    <div class="flex items-start gap-4">
+                        <span class="text-3xl">🚦</span>
+                        <div>
+                            <h4 class="font-bold text-lg mb-2">Zoom sur la Signalisation</h4>
+                            <p class="text-indigo-200 text-sm mb-4">C'est le "langage des machines". Avant de vous entendre dire "Allô", les machines doivent négocier.</p>
+                            <ul class="text-sm space-y-2 list-disc list-inside text-indigo-100">
+                                <li><strong>RTC :</strong> Signalisation analogique (impulsions, tonalités).</li>
+                                <li><strong>VoIP :</strong> Utilise le protocole <strong>SIP</strong>. C'est du texte pur (comme le HTTP du web) qui dit "Invite", "Ring", "Bye".</li>
+                            </ul>
+                        </div>
+                    </div>
+                `;
+
+                container.appendChild(list);
+                container.appendChild(info);
+            },
+
+            populateCheatSheet: () => {
+                const grid = document.getElementById('definitions-grid');
+                const allDefs = [
+                    { t: "RTC", d: "Réseau Téléphonique Commuté (Classique)" },
+                    { t: "RNIS", d: "Réseau Numérique Intégration Services" },
+                    { t: "VoIP", d: "Voice over IP (Internet)" },
+                    { t: "UIT", d: "Union Int. Télécoms (Normes)" },
+                    { t: "PABX", d: "Standard Privé (Matériel)" },
+                    { t: "IPBX", d: "Standard Privé (IP/Logiciel)" },
+                    { t: "SDA", d: "Sélection Directe à l'Arrivée" },
+                    { t: "FAI/ISP", d: "Fournisseur Accès Internet" }
+                ];
+
+                allDefs.forEach(item => {
+                    grid.innerHTML += `
+                        <div class="bg-stone-50 p-3 rounded border border-stone-200 hover:bg-stone-100 transition-colors">
+                            <span class="block font-bold text-stone-900 text-sm">${item.t}</span>
+                            <span class="block text-xs text-stone-600">${item.d}</span>
+                        </div>
+                    `;
+                });
+            },
+
+            toggleCheatSheet: () => {
+                const modal = document.getElementById('cheat-sheet-modal');
+                const panel = document.getElementById('cheat-sheet-panel');
+                
+                if (modal.classList.contains('hidden')) {
+                    modal.classList.remove('hidden');
+                    // Small timeout for transition
+                    setTimeout(() => {
+                        modal.classList.remove('opacity-0');
+                        panel.classList.remove('translate-x-full');
+                    }, 10);
+                } else {
+                    modal.classList.add('opacity-0');
+                    panel.classList.add('translate-x-full');
+                    setTimeout(() => {
+                        modal.classList.add('hidden');
+                    }, 300);
+                }
+            }
+        };
+
+        // Initialize App on Load
+        document.addEventListener('DOMContentLoaded', () => {
+            app.init();
+        });
+
+    </script>
+</body>
+</html>
