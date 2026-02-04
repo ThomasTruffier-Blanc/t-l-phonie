@@ -3,26 +3,15 @@
 <!-- Accents: #3b82f6 (Blue-500 for Digital/IP), #f97316 (Orange-500 for Analog/Voice) -->
 
 <!-- Application Structure Plan: 
-    1. Dashboard View (Home): High-level stats and navigation grid to 5 core learning modules.
+    1. Dashboard View (Home): High-level stats and navigation grid.
     2. Interactive Modules:
-       - Flow & Modes: Interactive packet simulator (Simplex/Half/Full).
-       - Tech Evolution: Radar chart comparing RTC, RNIS, VoIP attributes.
-       - The Network Map: Interactive hierarchy tree (CL -> CT -> ISP).
-       - Hardware Lab: Split-screen visualizer for Fiber vs Copper equipment.
-       - Enterprise & Protocols: Accordion-style deep dive into SIP, PABX, etc.
-    3. Quick Review (Anti-sèche): Always-accessible modal with summarized facts/flashcards.
-    
-    Why this structure? 
-    Breaking the "Fiche de Révision" into active modules transforms passive reading into active testing. 
-    The dashboard gives a sense of progress, while the "Lab" feel encourages experimentation with the concepts.
--->
-
-<!-- Visualization & Content Choices:
-    1. Communication Modes -> Goal: Understand Directionality -> Method: CSS/JS Animation (Moving dots) -> User triggers "Send" to see collisions or flow.
-    2. Technologies (RTC vs VoIP) -> Goal: Compare qualitative traits -> Method: Chart.js Radar Chart -> Maps abstract concepts like "Flexibility" and "Cost" to visual axes.
-    3. Hierarchy (CL/CT) -> Goal: Visualize Scale -> Method: HTML Flexbox Tree -> Click nodes to reveal definitions (URA, ZL).
-    4. Hardware (OLT/ONT) -> Goal: Distinguish Location (Home vs ISP) -> Method: Interactive Diagram (HTML/CSS) -> Toggle between "Fiber Path" and "Copper Path".
-    5. Summary -> Goal: Rapid Recall -> Method: Flashcard Grid -> Hover/Click to reveal answers.
+       - Flow & Modes: Interactive packet simulator.
+       - Tech Evolution: Radar chart.
+       - The Network Map (UPDATED): Hierarchical topology schema reflecting user's handwritten diagram (CT -> CTU -> CL -> URA).
+       - Hardware Lab: Split-screen visualizer.
+       - Enterprise & Protocols: Deep dive.
+       - Glossary (NEW): Complete dictionary of all 9 categories from the course sheet.
+    3. Quick Review (Anti-sèche): Always-accessible modal.
 -->
 
 <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. All icons are Unicode or CSS shapes. -->
@@ -88,11 +77,20 @@
         .packet.right { background-color: #3b82f6; animation: moveRight 2s linear forwards; }
         .packet.left { background-color: #f97316; animation: moveLeft 2s linear forwards; }
 
-        /* Tree Diagram Lines */
-        .tree-line {
+        /* Network Schema Lines */
+        .schema-connector {
             position: absolute;
-            background-color: #d6d3d1;
+            background-color: #9ca3af;
             z-index: 0;
+        }
+        .node-box {
+            position: relative;
+            z-index: 10;
+            transition: all 0.2s;
+        }
+        .node-box:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
         }
 
         /* Custom Scrollbar */
@@ -155,6 +153,14 @@
                     <span class="text-xl group-hover:scale-110 transition-transform">🏢</span>
                     <span class="hidden md:block font-medium">Entreprise</span>
                 </button>
+
+                <div class="pt-4 mt-4 border-t border-stone-100">
+                    <p class="hidden md:block text-xs font-semibold text-stone-400 uppercase tracking-wider mb-2">Complet</p>
+                    <button onclick="app.navigate('glossary')" class="nav-btn w-full text-left p-3 rounded-lg hover:bg-blue-50 transition-all flex items-center gap-3 text-blue-600 group" data-target="glossary">
+                        <span class="text-xl group-hover:scale-110 transition-transform">📚</span>
+                        <span class="hidden md:block font-medium">Glossaire</span>
+                    </button>
+                </div>
             </div>
         </nav>
 
@@ -201,7 +207,7 @@
         const data = {
             dashboard: {
                 title: "Vue d'ensemble",
-                description: "Bienvenue dans votre espace de révision. Ce tableau de bord synthétise les concepts clés du rapport sur les télécommunications. Sélectionnez un module à gauche pour approfondir ou utilisez l'anti-sèche pour une révision rapide.",
+                description: "Bienvenue dans votre espace de révision. Ce tableau de bord synthétise les concepts clés du rapport sur les télécommunications. Sélectionnez un module à gauche pour approfondir ou le glossaire pour la liste complète.",
                 stats: [
                     { label: "Modes de Com.", value: "3 Types", icon: "↔️", color: "bg-blue-100 text-blue-600" },
                     { label: "Technologies", value: "RTC, RNIS, VoIP", icon: "📞", color: "bg-orange-100 text-orange-600" },
@@ -231,13 +237,8 @@
             },
             infra: {
                 title: "Infrastructure & Commutation",
-                intro: "Le réseau téléphonique est hiérarchisé pour gérer efficacement des millions d'appels. Explorez la structure géographique, du quartier (Local) jusqu'au transit national.",
-                nodes: [
-                    { code: "CL", title: "Commutateur Local", desc: "Le point d'entrée. Relie directement l'abonné au réseau." },
-                    { code: "URA", title: "Unité de Raccordement", desc: "Extension distante du CL pour les abonnés éloignés." },
-                    { code: "CT", title: "Centre de Transit", desc: "Gère le trafic entre commutateurs. (CTU pour Urbain)." },
-                    { code: "ZL/ZU", title: "Zones Géo", desc: "Zone Locale (petite échelle) vs Zone Urbaine (ville)." }
-                ]
+                intro: "Le schéma ci-dessous illustre l'organisation hiérarchique du réseau téléphonique, du cœur de réseau national jusqu'à la boucle locale chez l'abonné.",
+                // Updated to be simpler, structure handled in render function now
             },
             hardware: {
                 title: "Équipements & Accès",
@@ -254,6 +255,83 @@
                     { term: "Call Server", full: "Serveur d'Appel", def: "Cerveau logiciel gérant le routage et les services pour de gros volumes." },
                     { term: "SDA", full: "Sélection Directe à l'Arrivée", def: "Permet d'appeler directement un employé (01.XX...15) sans passer par l'accueil." },
                     { term: "SIP", full: "Session Initiation Protocol", def: "Le langage standard de la VoIP pour connecter, sonner, décrocher." }
+                ]
+            },
+            glossary: {
+                title: "Glossaire Complet",
+                intro: "Toutes les définitions essentielles classées par catégorie, pour une révision exhaustive.",
+                categories: [
+                    {
+                        title: "1. Modes de communication",
+                        items: [
+                            { term: "Simplex", def: "Communication dans un seul sens uniquement. (Ex: Radio FM)" },
+                            { term: "Half-duplex", def: "Communication dans les deux sens mais pas en même temps. (Ex: Talkie-walkie)" },
+                            { term: "Full-duplex", def: "Communication dans les deux sens simultanément. (Ex: Appel téléphonique)" }
+                        ]
+                    },
+                    {
+                        title: "2. Réseaux et technologies",
+                        items: [
+                            { term: "RTC", desc: "Réseau Téléphonique Commuté", def: "Réseau téléphonique classique analogique sur cuivre, technologie historique." },
+                            { term: "RNIS (ISDN)", desc: "Réseau Numérique à Intégration de Services", def: "Évolution numérique du RTC permettant voix et données." },
+                            { term: "VoIP", desc: "Téléphonie IP", def: "Téléphonie utilisant les réseaux IP (Internet)." }
+                        ]
+                    },
+                    {
+                        title: "3. Signalisation et protocoles",
+                        items: [
+                            { term: "Signalisation", def: "Messages et protocoles permettant d'établir, gérer et terminer une communication (décroché, sonnerie, etc.)." },
+                            { term: "SIP", desc: "Session Initiation Protocol", def: "Protocole de signalisation pour la téléphonie IP (VoIP)." }
+                        ]
+                    },
+                    {
+                        title: "4. Organisations de normalisation",
+                        items: [
+                            { term: "UIT", desc: "Union Internationale des Télécommunications", def: "Organisation mondiale chargée de la normalisation." },
+                            { term: "UIT-T", def: "Secteur de l'UIT responsable des normes et recommandations techniques." }
+                        ]
+                    },
+                    {
+                        title: "5. Commutation et infrastructure",
+                        items: [
+                            { term: "CL", desc: "Commutateur Local", def: "Relie directement les abonnés." },
+                            { term: "CT", desc: "Centre de Transit", def: "Assure le transit des communications entre commutateurs." },
+                            { term: "CTU", desc: "Centre de Transit Urbain", def: "Transit des appels à l'échelle urbaine." },
+                            { term: "CU", desc: "Commutateur Urbain", def: "Commutation au niveau d'une zone urbaine." },
+                            { term: "URA (D)", desc: "Unité de Raccordement d'Abonnés (Distante)", def: "Raccorde les abonnés éloignés du central." },
+                            { term: "ZL", desc: "Zone Locale", def: "Zone géographique locale de téléphonie." },
+                            { term: "ZU", desc: "Zone Urbaine", def: "Zone téléphonique à l'échelle d'une ville." }
+                        ]
+                    },
+                    {
+                        title: "6. Équipements et accès réseau",
+                        items: [
+                            { term: "ONT", desc: "Optical Network Termination", def: "Équipement chez l'abonné qui termine la fibre optique (souvent intégré à la box)." },
+                            { term: "OLT", desc: "Optical Line Terminal", def: "Équipement côté opérateur qui gère et distribue la fibre vers les ONT." },
+                            { term: "DSLAM", def: "Équipement de concentration ADSL utilisant le cuivre." }
+                        ]
+                    },
+                    {
+                        title: "7. Téléphonie d'entreprise",
+                        items: [
+                            { term: "PABX", desc: "Private Automatic Branch eXchange", def: "Autocommutateur téléphonique privé d'entreprise." },
+                            { term: "IPBX", def: "Standard téléphonique moderne fonctionnant sur IP / Internet." },
+                            { term: "Call Server", def: "Système informatique capable de gérer plusieurs appels simultanés (routage, signalisation)." }
+                        ]
+                    },
+                    {
+                        title: "8. Numérotation",
+                        items: [
+                            { term: "SDA", desc: "Sélection Directe à l'Arrivée", def: "Permet d'appeler directement un poste sans passer par le standard." },
+                            { term: "Tranche / Plage SDA", def: "Ensemble de numéros consécutifs attribués à une entreprise." }
+                        ]
+                    },
+                    {
+                        title: "9. Acteurs réseau",
+                        items: [
+                            { term: "ISP", desc: "Internet Service Provider", def: "Fournisseur d'accès Internet (opérateur)." }
+                        ]
+                    }
                 ]
             }
         };
@@ -278,10 +356,15 @@
                 document.querySelectorAll('.nav-btn').forEach(btn => {
                     if(btn.dataset.target === viewId) {
                         btn.classList.add('bg-stone-100', 'text-stone-900', 'font-bold');
-                        btn.classList.remove('text-stone-600');
+                        btn.classList.remove('text-stone-600', 'text-blue-600');
                     } else {
                         btn.classList.remove('bg-stone-100', 'text-stone-900', 'font-bold');
-                        btn.classList.add('text-stone-600');
+                        // Keep text-blue-600 for glossary if not active
+                        if(btn.dataset.target === 'glossary') {
+                             btn.classList.add('text-blue-600');
+                        } else {
+                            btn.classList.add('text-stone-600');
+                        }
                     }
                 });
 
@@ -308,6 +391,7 @@
                 else if (viewId === 'infra') app.renderInfra(container);
                 else if (viewId === 'hardware') app.renderHardware(container);
                 else if (viewId === 'enterprise') app.renderEnterprise(container);
+                else if (viewId === 'glossary') app.renderGlossary(container);
             },
 
             renderDashboard: (container) => {
@@ -331,9 +415,14 @@
                 welcome.innerHTML = `
                     <h3 class="text-xl font-bold mb-4">Bienvenue</h3>
                     <p class="text-stone-600 mb-6">${data.dashboard.description}</p>
-                    <button onclick="app.navigate('modes')" class="bg-stone-800 text-white px-6 py-3 rounded-lg hover:bg-stone-700 transition-colors">
-                        Commencer la révision &rarr;
-                    </button>
+                    <div class="flex gap-4">
+                        <button onclick="app.navigate('modes')" class="bg-stone-800 text-white px-6 py-3 rounded-lg hover:bg-stone-700 transition-colors">
+                            Commencer la révision &rarr;
+                        </button>
+                        <button onclick="app.navigate('glossary')" class="bg-blue-100 text-blue-800 px-6 py-3 rounded-lg hover:bg-blue-200 transition-colors">
+                            Voir le Glossaire
+                        </button>
+                    </div>
                 `;
 
                 container.appendChild(grid);
@@ -420,16 +509,9 @@
             },
 
             sendPacket: (direction) => {
-                // Visual logic for packets
-                const startNode = direction === 'right' ? document.getElementById('packet-container-a') : document.getElementById('packet-container-b');
-                
-                // Check for Half Duplex Collision logic (simplified: prevent if animation running? Nah, let's keep it simple visual)
-                
                 const packet = document.createElement('div');
                 packet.className = `packet ${direction}`;
                 
-                // We need to append to a container that spans the width, not the node itself
-                // Adjusting structure for simpler animation:
                 const lineContainer = document.querySelector('.relative.h-32');
                 packet.style.display = 'block';
                 packet.style.top = '50%';
@@ -514,62 +596,112 @@
 
             renderInfra: (container) => {
                 const wrapper = document.createElement('div');
-                wrapper.className = "bg-white rounded-2xl p-6 shadow-sm border border-stone-100";
+                wrapper.className = "bg-white rounded-2xl p-6 md:p-10 shadow-sm border border-stone-100 overflow-x-auto";
                 
-                // A simplified visual tree using Grid/Flex
+                // New Hierarchical Visual Schema
                 wrapper.innerHTML = `
-                    <div class="flex flex-col items-center space-y-8 relative py-8">
-                        <!-- Connecting Line Vertical -->
-                        <div class="absolute left-1/2 top-10 bottom-10 w-1 bg-stone-200 -z-0"></div>
-
-                        <!-- Level 1: Transit -->
-                        <div class="z-10 bg-purple-100 border-2 border-purple-500 p-4 rounded-xl w-64 text-center cursor-pointer hover:scale-105 transition-transform group" onclick="app.showNodeDetail('CT')">
-                            <span class="text-2xl block mb-1">🌍 CT / CTU</span>
-                            <span class="font-bold text-purple-900">Centre de Transit</span>
-                            <div class="hidden group-hover:block text-xs text-purple-700 mt-2 bg-purple-50 p-2 rounded">Gère le trafic inter-villes</div>
-                        </div>
-
-                        <!-- Level 2: Local Switch -->
-                        <div class="z-10 bg-blue-100 border-2 border-blue-500 p-4 rounded-xl w-64 text-center cursor-pointer hover:scale-105 transition-transform group" onclick="app.showNodeDetail('CL')">
-                            <span class="text-2xl block mb-1">🏙️ CL / CU</span>
-                            <span class="font-bold text-blue-900">Commutateur Local</span>
-                             <div class="hidden group-hover:block text-xs text-blue-700 mt-2 bg-blue-50 p-2 rounded">Cœur du réseau urbain</div>
-                        </div>
-
-                         <!-- Branching for URA -->
-                         <div class="relative w-full max-w-lg flex justify-between px-10">
-                            <!-- Line branch -->
-                            <div class="absolute top-0 left-1/2 w-1/2 h-8 border-t-4 border-l-4 rounded-tl-xl border-stone-200 -z-10 translate-x-px"></div>
+                    <div class="min-w-[700px] flex flex-col items-center gap-10">
+                        
+                        <!-- Layer 1: Core Network (National) -->
+                        <div class="w-full flex justify-center gap-20 relative">
+                            <div class="absolute top-1/2 left-1/4 right-1/4 h-1 bg-stone-300 -z-0"></div>
                             
-                            <div class="z-10 bg-indigo-50 border-2 border-indigo-300 p-3 rounded-lg w-40 text-center mt-8">
-                                <span class="text-xl block">🏘️ URA</span>
-                                <span class="font-bold text-xs text-indigo-800">Unité Raccordement</span>
-                                <span class="block text-[10px] text-stone-500">Pour abonnés distants</span>
+                            <!-- CT Nodes -->
+                            <div class="node-box bg-purple-100 border-2 border-purple-500 p-4 rounded-lg w-32 text-center shadow-lg">
+                                <span class="text-xl">🌍 CT</span>
+                                <div class="text-xs font-bold text-purple-900 mt-1">Centre de Transit</div>
                             </div>
-                         </div>
-
-                        <!-- Level 3: Subscriber -->
-                         <div class="z-10 bg-green-100 border-2 border-green-500 p-4 rounded-xl w-64 text-center mt-4">
-                            <span class="text-2xl block mb-1">🏠 Abonné</span>
-                            <span class="font-bold text-green-900">Maison / Entreprise</span>
+                            <div class="node-box bg-purple-100 border-2 border-purple-500 p-4 rounded-lg w-32 text-center shadow-lg">
+                                <span class="text-xl">🌍 CT</span>
+                                <div class="text-xs font-bold text-purple-900 mt-1">Centre de Transit</div>
+                            </div>
                         </div>
-                    </div>
 
-                    <div class="mt-8 p-4 bg-stone-50 rounded-lg border border-stone-200">
-                        <h4 class="font-bold mb-2">Légende des Zones</h4>
-                        <div class="flex gap-4 text-sm">
-                            <span class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-blue-500"></span> <strong>ZU:</strong> Zone Urbaine</span>
-                            <span class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-stone-400"></span> <strong>ZL:</strong> Zone Locale</span>
+                        <!-- Vertical Connector -->
+                        <div class="h-8 w-1 bg-stone-300 -my-4"></div>
+
+                        <!-- Layer 2: Urban Zone (ZU) -->
+                        <div class="border-2 border-dashed border-blue-200 rounded-3xl p-6 bg-blue-50/30 w-full relative">
+                            <div class="absolute -top-3 left-4 bg-white px-2 text-sm font-bold text-blue-400">ZU (Zone Urbaine)</div>
+                            
+                            <div class="flex flex-col gap-8 items-center">
+                                <!-- CTU Level -->
+                                <div class="node-box bg-blue-100 border-2 border-blue-500 p-3 rounded-lg w-40 text-center shadow-md">
+                                    <span class="text-lg">🏙️ CTU</span>
+                                    <div class="text-xs font-bold text-blue-900">Transit Urbain</div>
+                                </div>
+                                
+                                <!-- Connector -->
+                                <div class="h-6 w-1 bg-stone-300 -my-2"></div>
+
+                                <!-- CL Level -->
+                                <div class="flex gap-16">
+                                    <div class="node-box bg-indigo-100 border-2 border-indigo-500 p-3 rounded-lg w-40 text-center shadow-md relative group">
+                                        <span class="text-lg">🏘️ CU / CL</span>
+                                        <div class="text-xs font-bold text-indigo-900">Commutateur Local</div>
+                                        
+                                        <!-- Connection Line to URA -->
+                                        <div class="absolute h-8 w-1 bg-stone-300 left-1/2 -bottom-8"></div>
+                                    </div>
+
+                                     <div class="node-box bg-indigo-100 border-2 border-indigo-500 p-3 rounded-lg w-40 text-center shadow-md relative">
+                                        <span class="text-lg">🏘️ CL</span>
+                                        <div class="text-xs font-bold text-indigo-900">Commutateur Local</div>
+                                        <div class="absolute h-8 w-1 bg-stone-300 left-1/4 -bottom-8"></div>
+                                        <div class="absolute h-8 w-1 bg-stone-300 right-1/4 -bottom-8"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Vertical Connector -->
+                         <div class="h-4 w-1 bg-stone-300 -my-4"></div>
+
+                        <!-- Layer 3: Local Loop (URA & Subscribers) -->
+                        <div class="w-full flex justify-around items-start">
+                            
+                            <!-- Branch 1: URA -->
+                            <div class="flex flex-col items-center">
+                                <div class="node-box bg-stone-100 border-2 border-stone-400 p-2 rounded w-32 text-center text-sm mb-4">
+                                    <span class="font-bold">URA</span> (Distant)
+                                </div>
+                                <div class="h-4 w-1 bg-stone-300 -mt-4 mb-2"></div>
+                                <div class="flex gap-2">
+                                    <span class="text-2xl" title="Abonné">🏠</span>
+                                    <span class="text-2xl" title="Abonné">🏠</span>
+                                </div>
+                            </div>
+
+                            <!-- Branch 2: Enterprise PABX -->
+                            <div class="border-2 border-dotted border-red-200 rounded-xl p-4 bg-red-50/30 flex flex-col items-center">
+                                <div class="absolute -mt-7 bg-white px-1 text-xs text-red-400">Entreprise</div>
+                                <div class="node-box bg-red-100 border-2 border-red-500 p-2 rounded w-24 text-center text-sm mb-2">
+                                    <span class="font-bold">PABX</span>
+                                </div>
+                                <div class="flex gap-2 justify-center">
+                                    <span class="text-xl">☎️</span>
+                                    <span class="text-xl">☎️</span>
+                                    <span class="text-xl">☎️</span>
+                                </div>
+                            </div>
+
+                             <!-- Branch 3: Direct Subscribers -->
+                             <div class="flex gap-4 pt-4">
+                                <div class="flex flex-col items-center">
+                                    <div class="h-6 w-px bg-stone-400 -mt-6 mb-1"></div>
+                                    <span class="text-3xl">🏠</span>
+                                    <span class="text-xs text-stone-500">Abonné</span>
+                                </div>
+                            </div>
+
+                        </div>
+                        
+                        <div class="mt-4 text-xs text-stone-400 italic">
+                            Schéma simplifié illustrant la hiérarchie et les points de concentration.
                         </div>
                     </div>
                 `;
                 container.appendChild(wrapper);
-            },
-
-            showNodeDetail: (code) => {
-                // Simple interaction feedback - In a larger app, this would open a modal
-                // For now, the hover state handles the info display as per CSS in renderInfra
-                // keeping it simple for the SPA single file constraint.
             },
 
             renderHardware: (container) => {
@@ -690,6 +822,38 @@
                 container.appendChild(info);
             },
 
+            renderGlossary: (container) => {
+                const wrapper = document.createElement('div');
+                wrapper.className = "grid grid-cols-1 lg:grid-cols-2 gap-8";
+
+                data.glossary.categories.forEach(cat => {
+                    const card = document.createElement('div');
+                    card.className = "bg-white p-6 rounded-xl border border-stone-200 shadow-sm hover:shadow-md transition-shadow";
+                    
+                    let itemsHtml = '<ul class="space-y-4">';
+                    cat.items.forEach(item => {
+                        itemsHtml += `
+                            <li class="border-b border-stone-100 last:border-0 pb-3 last:pb-0">
+                                <div class="flex flex-wrap items-baseline gap-2 mb-1">
+                                    <span class="font-bold text-stone-900 text-lg">${item.term}</span>
+                                    ${item.desc ? `<span class="text-xs font-mono text-blue-600 bg-blue-50 px-2 py-0.5 rounded">${item.desc}</span>` : ''}
+                                </div>
+                                <p class="text-stone-600 text-sm leading-relaxed">${item.def}</p>
+                            </li>
+                        `;
+                    });
+                    itemsHtml += '</ul>';
+
+                    card.innerHTML = `
+                        <h3 class="text-xl font-bold text-stone-800 mb-6 pb-2 border-b-2 border-stone-100">${cat.title}</h3>
+                        ${itemsHtml}
+                    `;
+                    wrapper.appendChild(card);
+                });
+
+                container.appendChild(wrapper);
+            },
+
             populateCheatSheet: () => {
                 const grid = document.getElementById('definitions-grid');
                 const allDefs = [
@@ -711,27 +875,8 @@
                         </div>
                     `;
                 });
-            },
-
-            toggleCheatSheet: () => {
-                const modal = document.getElementById('cheat-sheet-modal');
-                const panel = document.getElementById('cheat-sheet-panel');
-                
-                if (modal.classList.contains('hidden')) {
-                    modal.classList.remove('hidden');
-                    // Small timeout for transition
-                    setTimeout(() => {
-                        modal.classList.remove('opacity-0');
-                        panel.classList.remove('translate-x-full');
-                    }, 10);
-                } else {
-                    modal.classList.add('opacity-0');
-                    panel.classList.add('translate-x-full');
-                    setTimeout(() => {
-                        modal.classList.add('hidden');
-                    }, 300);
-                }
             }
+            
         };
 
         // Initialize App on Load
